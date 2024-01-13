@@ -1,0 +1,55 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Using AWS Step Functions to Categorize Uploaded Data
+Resources:
+  StepFunctionsBucket:
+    Type: AWS::S3::Bucket
+  PositiveInteractionQueue:
+    Type: AWS::SQS::Queue
+  NegativeInteractionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: NegativeInteraction
+      Handler: index.lambda_handler
+      Runtime: python3.11
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: !Sub |
+          def lambda_handler(event, context):
+              return event
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  StateMachineExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: step-function-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: step-functions-lambda-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
